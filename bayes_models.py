@@ -34,6 +34,12 @@ class MLP(nn.Module):
     def forward(self, x):
         return self.layers(x)
 
+    def surprise(self):
+        total = 0
+        for layer in self.layers:
+            total += layer.surprise()
+        return total
+
 
 class PointMLP(MLP):
     def forward(self, x):

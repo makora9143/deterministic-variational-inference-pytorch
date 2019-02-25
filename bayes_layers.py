@@ -24,11 +24,13 @@ class Linear(nn.Module):
 
     def forward(self, input):
         x_mean = input.mean
-        y_mean = x_mean.mm(self.weight.value.mean.t())
+        # y_mean = x_mean.mm(self.weight.value.mean.t())
+        y_mean = x_mean.mm(self.weight.variational_mean.t())
         if self.bias is not None:
-            y_mean += self.bias.value.mean.unsqueeze(0).expand_as(y_mean)
+            # y_mean += self.bias.value.mean.unsqueeze(0).expand_as(y_mean)
+            y_mean += self.bias.variational_mean.unsqueeze(0).expand_as(y_mean)
         x_cov = input.var
-        y_cov = linear_covariance(x_mean, x_cov, self.weight, self.bias)
+        y_cov = self.linear_covariance(x_mean, x_cov)
         return gv.GaussianVar(y_mean, y_cov)
 
     def extra_repr(self):
@@ -37,41 +39,42 @@ class Linear(nn.Module):
         )
 
     def surprise(self):
+        w_kl = torch.sum(self.weight.surprise())
+        b_kl = torch.sum(self.bias.surprise())
+        return w_kl + b_kl
 
+    def linear_covariance(self, x_mean, x_cov):
+        x_var_diag = torch.diagonal(x_cov, dim1=1, dim2=2)
+        xx_mean = x_var_diag + x_mean * x_mean
 
+        term1_diag = xx_mean.mm(self.weight.variational_var.t())
 
-def linear_covariance(x_mean, x_cov, A, b):
-    x_var_diag = torch.diagonal(x_cov, dim1=1, dim2=2)
-    xx_mean = x_var_diag + x_mean * x_mean
+        flat_xCov = x_cov.reshape(-1, self.weight.variational_mean.shape[1])  # [B * x, x]
+        xCov_A = flat_xCov.mm(self.weight.variational_mean.t())  # [B * x, y]
+        xCov_A = xCov_A.reshape(-1, self.weight.variational_mean.shape[1], self.weight.variational_mean.shape[0])  # [B, x, y]
+        xCov_A = torch.transpose(xCov_A, 1, 2)  # [B, y, x]
+        xCov_A = xCov_A.reshape(-1, self.weight.variational_mean.shape[1])  # [B*y, x]
+        A_xCov_A = xCov_A.mm(self.weight.variational_mean.t())  # [B*y, y]
+        A_xCov_A = A_xCov_A.reshape(-1, self.weight.variational_mean.shape[0], self.weight.variational_mean.shape[0])  # [B, y, y]
 
-    term1_diag = xx_mean.mm(A.var.t())
+        term2 = A_xCov_A
+        term2_diag = torch.diagonal(term2, dim1=1, dim2=2)
 
-    flat_xCov = x_cov.reshape(-1, A.shape[1])  # [B * x, x]
-    xCov_A = flat_xCov.mm(A.mean.t())  # [B * x, y]
-    xCov_A = xCov_A.reshape(-1, A.shape[1], A.shape[0])  # [B, x, y]
-    xCov_A = torch.transpose(xCov_A, 1, 2)  # [B, y, x]
-    xCov_A = xCov_A.reshape(-1, A.shape[1])  # [B*y, x]
-    A_xCov_A = xCov_A.mm(A.mean.t())  # [B*y, y]
-    A_xCov_A = A_xCov_A.reshape(-1, A.shape[0], A.shape[0])  # [B, y, y]
+        term3_diag = self.bias.variational_var.unsqueeze(0).expand_as(term2_diag)
 
-    term2 = A_xCov_A
-    term2_diag = torch.diagonal(term2, dim1=1, dim2=2)
-
-    term3_diag = b.var.unsqueeze(0).expand_as(term2_diag)
-
-    result_diag = term1_diag + term2_diag + term3_diag
-    return bu.matrix_set_diag(term2, result_diag)
+        result_diag = term1_diag + term2_diag + term3_diag
+        return bu.matrix_set_diag(term2, result_diag)
 
 
 class LinearCertainActivations(Linear):
     def forward(self, input):
         x_mean = input
         xx = x_mean * x_mean
-        y_mean = x_mean.mm(self.weight.value.mean.t())
-        diag_cov = xx.mm(self.weight.value.var.t())
+        y_mean = x_mean.mm(self.weight.variational_mean.t())
+        diag_cov = xx.mm(self.weight.variational_var.t())
         if self.bias is not None:
-            y_mean += self.bias.value.mean.unsqueeze(0).expand_as(y_mean)
-            diag_cov += self.bias.value.var.unsqueeze(0).expand_as(diag_cov)
+            y_mean += self.bias.variational_mean.unsqueeze(0).expand_as(y_mean)
+            diag_cov += self.bias.variational_var.unsqueeze(0).expand_as(diag_cov)
         y_cov = bu.matrix_diag(diag_cov)
         return gv.GaussianVar(y_mean, y_cov)
 
@@ -93,19 +96,15 @@ class LinearReLU(Linear):
             return input.var * bu.delta(rho, mu1, mu2)
 
         z_mean = sqrt_x_var_diag * bu.softrelu(mu)
-        y_mean = z_mean.mm(self.weight.value.mean.t())
+        y_mean = z_mean.mm(self.weight.variational_mean.t())
         if self.bias is not None:
-            y_mean += self.bias.value.mean
+            y_mean += self.bias.variational_mean
         z_cov = relu_covariance(input)
-        y_cov = linear_covariance(z_mean, z_cov, self.weight.value, self.bias.value)
+        y_cov = self.linear_covariance(z_mean, z_cov)
         return gv.GaussianVar(y_mean, y_cov)
 
 
 class LinearHeaviside(Linear):
     def forward(self, input):
         pass
-
-
-class RegressionLoss(nn.Module):
-    def forward(self, pred, target):
 

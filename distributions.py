@@ -3,11 +3,33 @@ from numbers import Number
 import torch
 from torch.distributions import constraints
 from torch.distributions.exp_family import ExponentialFamily
+from torch.distributions import MultivariateNormal, Laplace
 from torch.distributions.utils import broadcast_all
 
 
 def _standard_gamma(concentration):
     return torch._standard_gamma(concentration)
+
+
+class DiagonalDistribution(object):
+    def __repr__(self):
+        param_names = [k for k, _ in self.distribution.arg_constraints.items()
+                       if k in self.distribution.__dict__]
+        args_string = ', '.join(['{}: {}'.format(p, self.distribution.__dict__[p]
+                                                 if self.distribution.__dict__[p].dim() == 0
+                                                 else self.distribution.__dict__[p].size())
+                                 for p in param_names])
+        return self.__class__.__name__ + '(' + args_string + ')'
+
+
+class DiagonalNormal(MultivariateNormal, DiagonalDistribution):
+    def __init__(self, loc, scale):
+        super(DiagonalNormal, self).__init__(loc, scale_tril=torch.diag(scale))
+
+
+class DiagonalLaplace(Laplace, DiagonalDistribution):
+    def __init__(self, loc, scale):
+        super(DiagonalLaplace, self).__init__(loc, scale_tril=torch.diag(scale))
 
 
 class InverseGamma(ExponentialFamily):
@@ -20,7 +42,7 @@ class InverseGamma(ExponentialFamily):
 
     @property
     def mean(self):
-        return self.scale / (self.concentration + 1)
+        return self.scale / (self.concentration - 1)
 
     @property
     def variance(self):
