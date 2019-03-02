@@ -6,7 +6,6 @@ import torch.nn as nn
 import torch.distributions as tdist
 
 import distributions as bdist
-from kl import kl_normal_invgamma
 
 
 def gaussian_init(mean, sigma, shape):
@@ -74,7 +73,7 @@ def make_weight_matrix(shape, prior_type):
         # mainly here
         a = 4.4798
         alpha = torch.tensor(a).float()
-        beta = torch.tensor(1 + a).float() * s2
+        beta = torch.tensor((1 + a)* s2).float() 
 
         mean = gaussian_init(0.0, math.sqrt(s2), shape)
         prior = bdist.InverseGamma(alpha, beta)
