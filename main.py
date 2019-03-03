@@ -3,49 +3,73 @@ import argparse
 import numpy as np
 #import matplotlib.pyplot as plt
 
+from tqdm import tqdm
+from logzero import logger
+
 import torch
-import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import DataLoader
 
-import bayes_layers as bnn
+from dataset import ToyDataset
 from bayes_models import MLP, PointMLP, AdaptedMLP
-
-def base_model(x):
-    return - (x + 0.5) * np.sin(3 * np.pi * x)
+from loss import GLLLoss
 
 
-def noise_model(x):
-    return 0.45 * (x + 0.5) ** 2
+def train(epoch, model, criterion, dataloader, optimizer):
+    model.mlp.train()
+
+    pbar = tqdm(dataloader)
+    pbar.set_description_str("Epoch={}/{}".format(epoch, args.epochs))
+
+    for idx, (xs, ys) in enumerate(pbar, 1):
+        xs, ys = xs.to(args.device), ys.to(args.device)
+
+        optimizer.zero_grad()
+
+        pred = model(xs)
+
+        kl = model.surprise()
+
+        log_likelihood = criterion(pred, ys)
+        batch_log_likelihood = torch.mean(log_likelihood)
+
+        lmbd = 0.1
+
+        loss = lmbd * kl / args.train_size - batch_log_likelihood
+
+        loss.backward(retain_graph=True)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
+
+        optimizer.step()
+
+    pbar.write("GLL={}, KL={}".format(batch_log_likelihood.item(), kl.item()))
 
 
-def sample_data(x):
-    return base_model(x) + np.random.normal(0, noise_model(x))
+def test(epoch, model, criterion, dataloader):
+    model.test()
 
 
-def create_data():
-    data_size = {'train': 500, 'valid': 100, 'test': 100}
-    toy_data = []
-    for section in data_size.keys():
-        x = (np.random.rand(data_size[section], 1) - 0.5)
-        toy_data.append([x, sample_data(x).reshape(-1)])
-    x = np.arange(-1, 1, 1 / 100)
-    toy_data.append([[[_] for _ in x], base_model(x)])
-    return toy_data
+def main():
+    trainset = ToyDataset(data_size=args.train_size, sampling=True)
+    testset = ToyDataset(data_size=args.test_size, sampling=True)
+    trainloader = DataLoader(trainset, batch_size=args.train_size, shuffle=True)
+    testloader = DataLoader(testset, batch_size=args.test_size, shuffle=True)
 
 
-def make_model(args):
-    if args.method.lower().strip() == 'bayes':
-        MLP_factory = MLP
-        prediction = lambda y: y.mean[:, 0].view(-1)
-        loss = bnn.regression_loss
-    else:
-        MLP_factory = PointMLP
-        prediction = lambda y: y.mean[:, 0].view(-1)
-        loss = bnn.point_regression_loss
+    mlp = MLP(args.x_dim, args.y_dim, args.prior_type, args.hidden_dims)
+    model = AdaptedMLP(mlp, args.adapter)
 
-    mlp = MLP_factory(args.x_dim, args.y_dim, args)
-    mlp = AdaptedMLP(mlp)
-    return mlp
+    criterion = GLLLoss()
+
+    optimizer = optim.Adam(model.parameters(),
+                           lr=args.lr)
+    schedular = optim.lr_scheduler.StepLR(optimizer, 5, 0.1)
+
+    for epoch in range(1, args.epochs+1):
+        schedular.step()
+        train(epoch, model, criterion, trainloader, optimizer)
+        # test(epoch, model, criterion, testloader)
+
 
 
 if __name__ == '__main__':
@@ -59,6 +83,15 @@ if __name__ == '__main__':
     parser.add_argument('--nonlinear', type=str, default='relu',
                         help="Non-Linearity")
 
+    parser.add_argument('--epochs', type=int, default=10000,
+                        help="Epochs")
+    parser.add_argument('--lr', type=float, default=1e-3,
+                        help='learning rate')
+    parser.add_argument('--train-size', type=int, default=500,
+                        help='Train size (Also Training batch data size)')
+    parser.add_argument('--test-size', type=int, default=100,
+                        help='Test size (Also Testing batch data size)')
+
     parser.add_argument('--seed', type=int, default=3,
                         help="Random Seed")
 
@@ -70,17 +103,16 @@ if __name__ == '__main__':
         'out': {"scale": [[1.0, 0.83]], "shift": [[0.0, -3.5]]}
     }
 
+    # if torch.cuda.is_available():
+    #     args.device = torch.device('cuda')
+    # else:
+    #     args.device = torch.device('cpu')
+    args.device = torch.device('cpu')
+
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     print(args)
     print('hidden_dims' in args)
 
-    model = MLP(args.x_dim, args.y_dim, args)
-    model = AdaptedMLP(model)
-
-    pseudo_x = torch.randn(32, 1)
-    print(model)
-    print(model(pseudo_x))
-
-    # main()
+    main()
 

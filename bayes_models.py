@@ -68,3 +68,9 @@ class AdaptedMLP(object):
         mean = self.adapter['out']['scale'] * self.pre_adapt.mean + self.adapter['out']['shift']
         cov = self.adapter['out']['scale'].reshape(-1, 1) * self.adapter['out']['scale'].reshape(1, -1) * self.pre_adapt.var
         return gv.GaussianVar(mean, cov)
+
+    def surprise(self):
+        return self.mlp.surprise()
+
+    def parameters(self):
+        return self.mlp.parameters()

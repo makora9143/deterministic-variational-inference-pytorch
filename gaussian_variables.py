@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.distributions as tdist
 
 import distributions as bdist
+from kl import kl_normal_invgamma
 
 
 def gaussian_init(mean, sigma, shape):
