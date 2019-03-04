@@ -74,3 +74,6 @@ class AdaptedMLP(object):
 
     def parameters(self):
         return self.mlp.parameters()
+
+    def __repr__(self):
+        return self.mlp.__repr__()

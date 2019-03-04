@@ -27,8 +27,8 @@ class GLLLoss(nn.Module):
                                               if self.style != 'heteroschedastic' else '')
 
     def heteroschedastic_gaussian_loglikelihood(self, pred, target):
-        log_variance = pred.mean[:, 0].reshape(-1)
-        mean = pred.mean[:, 1].reshape(-1)
+        log_variance = pred.mean[:, 1].reshape(-1)
+        mean = pred.mean[:, 0].reshape(-1)
 
         if self.method.lower().strip() == 'bayes':
             sll = pred.var[:, 1, 1].reshape(-1)
