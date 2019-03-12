@@ -11,7 +11,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from dataset import ToyDataset
-from bayes_models import MLP, PointMLP, AdaptedMLP
+from bayes_models import MLP, AdaptedMLP
 from loss import GLLLoss
 
 
