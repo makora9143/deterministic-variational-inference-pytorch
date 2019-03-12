@@ -1,51 +1,35 @@
 import torch
 import torch.nn as nn
-import bayes_layers as bnn
-import gaussian_variables as gv
 
+from bayes_layers import LinearCertainActivations, LinearReLU
+from variables import GaussianVar
 
 class MLP(nn.Module):
-    def __init__(self, input_size, output_size, prior_type, hidden_dims=None, nonlinear='relu'):
+    def __init__(self, x_dim, y_dim, prior_type, hidden_size=None):
         super(MLP, self).__init__()
-        self.sizes = [input_size]
-        if hidden_dims is not None:
-            self.sizes += hidden_dims
-        self.sizes += [output_size]
+
+        self.sizes = [x_dim]
+        if hidden_size is not None:
+            self.sizes += hidden_size
+        self.sizes += [y_dim]
         self.prior_type = prior_type
-        self.layer_factory = self.get_layer_factory(nonlinear)
-        self.make()
+        self.make_layers(True)
 
-    def get_layer_factory(self, nonlinearity):
-        nonlinearity = nonlinearity.strip().lower()
-        if nonlinearity == 'relu':
-            return bnn.LinearReLU
-        elif nonlinearity == 'heaviside':
-            return bnn.LinearHeaviside
-        else:
-            raise NotImplementedError("Not Implemented.")
 
-    def make(self):
-        layers = [bnn.LinearCertainActivations(self.sizes[0], self.sizes[1], self.prior_type)]
-
-        for input_dim, output_dim in zip(self.sizes[1:-1], self.sizes[2:]):
-            layers.append(self.layer_factory(input_dim, output_dim, self.prior_type))
+    def make_layers(self, bias=True):
+        layers = [LinearCertainActivations(self.sizes[0], self.sizes[1], self.prior_type, bias)]
+        for in_dim, out_dim in zip(self.sizes[1:-1], self.sizes[2:]):
+            layers.append(LinearReLU(in_dim, out_dim, self.prior_type, bias))
         self.layers = nn.Sequential(*layers)
 
-    def forward(self, x):
-        return self.layers(x)
+    def forward(self, input):
+        return self.layers(input)
 
     def surprise(self):
-        total = 0
+        all_surprise = 0
         for layer in self.layers:
-            total += layer.surprise()
-        return total
-
-
-class PointMLP(MLP):
-    def forward(self, x):
-        self.h = [x]
-        for l in self.layers:
-            self.h.append()
+            all_surprise += layer.surprise()
+        return all_surprise
 
 
 class AdaptedMLP(object):
@@ -62,18 +46,18 @@ class AdaptedMLP(object):
                 'shift': torch.tensor(adapter[ad]['shift'])
             }
 
-    def __call__(self, x):
-        x_ad = self.adapter['in']['scale'] * x + self.adapter['in']['shift']
+    def __call__(self, input):
+        x_ad = self.adapter['in']['scale'] * input + self.adapter['in']['shift']
         self.pre_adapt = self.mlp(x_ad)
         mean = self.adapter['out']['scale'] * self.pre_adapt.mean + self.adapter['out']['shift']
         cov = self.adapter['out']['scale'].reshape(-1, 1) * self.adapter['out']['scale'].reshape(1, -1) * self.pre_adapt.var
-        return gv.GaussianVar(mean, cov)
+        return GaussianVar(mean, cov)
+
+    def __repr__(self):
+        return "AdaptedMLP(\n" + self.mlp.__repr__() + ")"
 
     def surprise(self):
         return self.mlp.surprise()
 
     def parameters(self):
         return self.mlp.parameters()
-
-    def __repr__(self):
-        return self.mlp.__repr__()

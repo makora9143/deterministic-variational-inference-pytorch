@@ -11,7 +11,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from dataset import ToyDataset
-from bayes_models import MLP, PointMLP, AdaptedMLP
+from bayes_models import MLP, AdaptedMLP
 from loss import GLLLoss
 
 
@@ -35,14 +35,15 @@ def train(epoch, model, criterion, dataloader, optimizer):
 
         lmbd = 0.1
 
-        loss = lmbd * kl / args.train_size - batch_log_likelihood
+        # loss = lmbd * kl / args.train_size - batch_log_likelihood
+        loss = -batch_log_likelihood
 
         loss.backward(retain_graph=True)
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
+        # torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
 
         optimizer.step()
 
-    pbar.write("GLL={}, KL={}".format(batch_log_likelihood.item(), kl.item()))
+    pbar.write("GLL={}, KL={}".format(batch_log_likelihood.item(), kl.item()/500))
 
 
 def test(epoch, model, criterion, dataloader):

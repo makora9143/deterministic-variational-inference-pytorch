@@ -52,6 +52,5 @@ class GLLLoss(nn.Module):
         return self.gaussian_loglikelihood_core(target, mean, log_variance, smm, sml, sll)
 
     def gaussian_loglikelihood_core(self, target, mean, log_variance, smm, sml, sll):
-        return -0.5 * (torch.tensor(math.log(2.0 * math.pi)) + log_variance + \
-                       torch.exp(-log_variance + 0.5 * sll) * (smm + (mean - sml - target) ** 2))
-
+        return (-0.5 * (torch.tensor(math.log(2.0 * math.pi)) + log_variance
+                        + torch.exp(-log_variance + 0.5 * sll) * (smm + (mean - sml - target) ** 2)))

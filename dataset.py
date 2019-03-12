@@ -54,6 +54,6 @@ class ToyDataset(Dataset):
             xs = np.arange(-1, 1, 1 / 100)
         ys = self.sample_data(xs)
 
-        self.data = [(torch.from_numpy(x).float(), torch.from_numpy(y).float())
+        self.data = [(torch.from_numpy(x).float(), torch.tensor(torch.from_numpy(y).item()).float())
                      for x, y in zip(xs, ys)]
 
