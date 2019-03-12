@@ -16,16 +16,17 @@ class GaussianVar(object):
 
 
 class Parameter(nn.Module):
-    def __init__(self, prior, approximation, *q_params):
+    def __init__(self, prior, approximation, q_loc, q_scale):
         super(Parameter, self).__init__()
 
         self.prior = prior
         self.approximation = approximation
 
-        self.q_params = q_params
+        self.q_loc = q_loc
+        self.q_scale = q_scale
 
     def q(self):
-        return self.approximation(*self.q_params)
+        return self.approximation(self.q_loc, self.q_scale)
 
     def __repr__(self):
         args_string = 'Prior: {}\n  Variational: {}'.format(
