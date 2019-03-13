@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-from bayes_layers import LinearCertainActivations, LinearReLU
-from variables import GaussianVar
+from .bayes_layers import LinearCertainActivations, LinearReLU
+from .variables import GaussianVar
 
 class MLP(nn.Module):
     def __init__(self, x_dim, y_dim, prior_type, hidden_size=None):

@@ -8,9 +8,9 @@ import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from dataset import ToyDataset
-from bayes_models import MLP, AdaptedMLP
-from loss import GLLLoss
+from dvi.dataset import ToyDataset
+from dvi.bayes_models import MLP, AdaptedMLP
+from dvi.loss import GLLLoss
 
 
 def train(epoch, model, criterion, dataloader, optimizer):

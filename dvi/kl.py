@@ -2,7 +2,8 @@ import math
 import torch
 import torch.distributions as tdist
 from torch.distributions.kl import register_kl
-from invgamma import InverseGamma
+
+from .invgamma import InverseGamma
 
 one_ovr_sqrt2pi = 1.0 / math.sqrt(2.0 * math.pi)
 one_ovr_sqrt2 = 1.0 / math.sqrt(2.)

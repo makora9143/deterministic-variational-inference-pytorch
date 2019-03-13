@@ -5,8 +5,8 @@ import torch
 import torch.nn as nn
 import torch.distributions as tdist
 
-from invgamma import InverseGamma
-from kl import kl_normal_invgamma, kl_normal_laplace
+from .invgamma import InverseGamma
+from .kl import kl_normal_invgamma, kl_normal_laplace
 
 class GaussianVar(object):
     def __init__(self, mean, var):

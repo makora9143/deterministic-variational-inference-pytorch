@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-import bayes_utils as bu
-from variables import make_weight_matrix, make_bias_vector, GaussianVar
+import dvi.bayes_utils as bu
+from .variables import make_weight_matrix, make_bias_vector, GaussianVar
 
 
 class Linear(nn.Module):
