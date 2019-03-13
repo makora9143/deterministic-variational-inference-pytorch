@@ -1,25 +1,25 @@
 import torch
 import torch.nn as nn
 
-from .bayes_layers import LinearCertainActivations, LinearReLU
+from .bayes_layers import VariationalLinearCertainActivations, VariationalLinearReLU
 from .variables import GaussianVar
 
 class MLP(nn.Module):
-    def __init__(self, x_dim, y_dim, prior_type, hidden_size=None):
+    def __init__(self, x_dim, y_dim, hidden_size=None):
         super(MLP, self).__init__()
 
         self.sizes = [x_dim]
         if hidden_size is not None:
             self.sizes += hidden_size
         self.sizes += [y_dim]
-        self.prior_type = prior_type
+        # self.prior_type = prior_type
         self.make_layers(True)
 
 
     def make_layers(self, bias=True):
-        layers = [LinearCertainActivations(self.sizes[0], self.sizes[1], self.prior_type, bias)]
+        layers = [VariationalLinearCertainActivations(self.sizes[0], self.sizes[1])]
         for in_dim, out_dim in zip(self.sizes[1:-1], self.sizes[2:]):
-            layers.append(LinearReLU(in_dim, out_dim, self.prior_type, bias))
+            layers.append(VariationalLinearReLU(in_dim, out_dim))
         self.layers = nn.Sequential(*layers)
 
     def forward(self, input):

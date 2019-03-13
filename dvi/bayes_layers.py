@@ -5,15 +5,17 @@ import dvi.bayes_utils as bu
 from .variables import make_weight_matrix, make_bias_vector, GaussianVar
 
 
-class Linear(nn.Module):
-    def __init__(self, input_features, output_features, prior_type, bias=True):
-        super(Linear, self).__init__()
+class VariationalLinear(nn.Module):
+    def __init__(self, input_features, output_features,
+                 prior_type='empirical',
+                 variance='wider_he', bias=True):
+        super(VariationalLinear, self).__init__()
         self.input_features = input_features
         self.output_features = output_features
 
-        self.weight = make_weight_matrix((output_features, input_features), prior_type)
+        self.weight = make_weight_matrix((output_features, input_features), prior_type, variance)
         if bias:
-            self.bias = make_bias_vector((output_features, input_features), prior_type)
+            self.bias = make_bias_vector((output_features, input_features), prior_type, variance)
         else:
             self.register_parameter("bias", None)
 
@@ -57,9 +59,16 @@ class Linear(nn.Module):
         return bu.matrix_set_diag(term2, result_diag, dim1=-2, dim2=-1)
 
 
-class LinearCertainActivations(Linear):
-    def __init__(self, input_features, output_features, prior_type, bias=True):
-        super(LinearCertainActivations, self).__init__(input_features, output_features, prior_type, bias)
+class VariationalLinearCertainActivations(VariationalLinear):
+    # def __init__(self, input_features, output_features,
+    #              prior_type='empirical',
+    #              variance='wider_he',
+    #              bias=True):
+    #     super(VariationalLinearCertainActivations, self).__init__(input_features,
+    #                                                               output_features,
+    #                                                               prior_type,
+    #                                                               variance,
+    #                                                               bias)
 
     def forward(self, input):
         x_mean = input
@@ -75,9 +84,9 @@ class LinearCertainActivations(Linear):
         return GaussianVar(y_mean, y_cov)
 
 
-class LinearReLU(Linear):
-    def __init__(self, input_features, output_features, prior_type, bias=True):
-        super(LinearReLU, self).__init__(input_features, output_features, prior_type, bias)
+class VariationalLinearReLU(VariationalLinear):
+    # def __init__(self, input_features, output_features, prior_type, bias=True):
+    #     super(LinearReLU, self).__init__(input_features, output_features, prior_type, bias)
 
     def forward(self, input):
         x_var_diag = torch.diagonal(input.var, dim1=-2, dim2=-1)

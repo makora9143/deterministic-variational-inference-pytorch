@@ -55,7 +55,7 @@ def main():
     testloader = DataLoader(testset, batch_size=args.test_size, shuffle=True)
 
 
-    mlp = MLP(args.x_dim, args.y_dim, args.prior_type, args.hidden_dims)
+    mlp = MLP(args.x_dim, args.y_dim, args.hidden_dims)
     model = AdaptedMLP(mlp, args.adapter, device=args.device)
 
     criterion = GLLLoss()

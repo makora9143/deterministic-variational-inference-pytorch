@@ -69,19 +69,19 @@ def laplace_init(loc, scale, shape):
     return torch.from_numpy(np.random.laplace(loc, scale/np.sqrt(2.0), size=shape).astype(np.float32))
 
 
-def make_weight_matrix(shape, prior_type):
+def make_weight_matrix(shape, prior_type, variance):
     """
     Args:
         shape (list, required): The shape of weight matrix. It should be `(out_features, in_features)`.
         prior_type (list, required): Prior Type. It should be `[prior, weight_scale, bias_scale]`
         `["gaussian", "wider_he", "wider_he"]`.
     """
-    variance = get_variance_scale(prior_type[1].strip().lower(), shape)
+    variance = get_variance_scale(variance.strip().lower(), shape)
     stddev = torch.sqrt(torch.ones(shape) * variance).float()
     log_stddev = nn.Parameter(torch.log(stddev))
     stddev = torch.exp(log_stddev)
 
-    prior = prior_type[0].strip().lower()
+    prior = prior_type.strip().lower()
 
     if prior == 'empirical':
         a = 4.4798
@@ -113,14 +113,14 @@ def make_weight_matrix(shape, prior_type):
     return Parameter(prior, tdist.Normal, mean, log_stddev)
 
 
-def make_bias_vector(shape, prior_type):
+def make_bias_vector(shape, prior_type, variance):
     fudge_factor = 10.0
-    variance = get_variance_scale(prior_type[2].strip().lower(), shape)
+    variance = get_variance_scale(variance.strip().lower(), shape)
     stddev = torch.sqrt(torch.ones(shape[-2],) * variance / fudge_factor)
     log_stddev = nn.Parameter(torch.log(stddev))
     stddev = torch.exp(log_stddev)
 
-    prior = prior_type[0].strip().lower()
+    prior = prior_type.strip().lower()
 
     if prior == 'empirical':
         a = 4.4798
