@@ -16,17 +16,17 @@ class GaussianVar(object):
 
 
 class Parameter(nn.Module):
-    def __init__(self, prior, approximation, q_loc, q_scale):
+    def __init__(self, prior, approximation, q_loc, log_q_scale):
         super(Parameter, self).__init__()
 
         self.prior = prior
         self.approximation = approximation
 
         self.q_loc = q_loc
-        self.q_scale = q_scale
+        self.log_q_scale = log_q_scale
 
     def q(self):
-        return self.approximation(self.q_loc, self.q_scale)
+        return self.approximation(loc=self.q_loc, scale=torch.exp(self.log_q_scale))
 
     def __repr__(self):
         args_string = 'Prior: {}\n  Variational: {}'.format(
@@ -93,7 +93,7 @@ def make_weight_matrix(shape, prior_type):
         # mean = nn.Parameter(gaussian_init(0.0, math.sqrt(variance), shape))
         mean = nn.Parameter(torch.Tensor(*shape))
         nn.init.normal_(mean, 0.0, math.sqrt(variance))
-        return Parameter(prior, tdist.Normal, mean, stddev)
+        return Parameter(prior, tdist.Normal, mean, log_stddev)
 
     elif prior == 'gaussian' or prior == 'normal':
         init_function = gaussian_init
@@ -110,7 +110,7 @@ def make_weight_matrix(shape, prior_type):
     prior_scale = torch.ones(*shape) * math.sqrt(variance)
     prior = prior_generator(prior_loc, prior_scale)
 
-    return Parameter(prior, tdist.Normal, mean, stddev)
+    return Parameter(prior, tdist.Normal, mean, log_stddev)
 
 
 def make_bias_vector(shape, prior_type):
@@ -130,6 +130,6 @@ def make_bias_vector(shape, prior_type):
         prior = InverseGamma(alpha, beta)
 
         mean = nn.Parameter(torch.zeros(shape[-2],))
-        return Parameter(prior, tdist.Normal, mean, stddev)
+        return Parameter(prior, tdist.Normal, mean, log_stddev)
     else:
         raise NotImplementedError('prior type "{}" not recognized'.format(prior))

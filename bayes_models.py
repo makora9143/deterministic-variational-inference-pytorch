@@ -33,17 +33,19 @@ class MLP(nn.Module):
 
 
 class AdaptedMLP(object):
-    def __init__(self, mlp, adapter):
-        self.mlp = mlp
+    def __init__(self, mlp, adapter, device=torch.device('cpu')):
+        self.mlp = mlp.to(device)
         self.__dict__.update(mlp.__dict__)
+        self.device = device
         self.make_adapters(adapter)
+
 
     def make_adapters(self, adapter):
         self.adapter = {}
         for ad in ['in', 'out']:
             self.adapter[ad] = {
-                'scale': torch.tensor(adapter[ad]['scale']),
-                'shift': torch.tensor(adapter[ad]['shift'])
+                'scale': torch.tensor(adapter[ad]['scale']).to(self.device),
+                'shift': torch.tensor(adapter[ad]['shift']).to(self.device)
             }
 
     def __call__(self, input):

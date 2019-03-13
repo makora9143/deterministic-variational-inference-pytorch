@@ -38,7 +38,7 @@ class Linear(nn.Module):
         x_var_diag = torch.diagonal(x_cov, dim1=-2, dim2=-1)
         xx_mean = x_var_diag + x_mean * x_mean
 
-        term1_diag = xx_mean.mm(torch.pow(self.weight.q_scale, 2).t())
+        term1_diag = xx_mean.mm(torch.pow(torch.exp(self.weight.log_q_scale), 2).t())
 
         flat_xCov = x_cov.reshape(-1, input_dim)
         xCov_W = flat_xCov.mm(self.weight.q_loc.t())
@@ -51,7 +51,7 @@ class Linear(nn.Module):
         term2 = W_xCov_W
         term2_diag = torch.diagonal(term2, dim1=-2, dim2=-1)
 
-        term3_diag = torch.pow(self.bias.q_scale, 2).unsqueeze(0).expand_as(term2_diag)
+        term3_diag = torch.pow(torch.exp(self.bias.log_q_scale), 2).unsqueeze(0).expand_as(term2_diag)
 
         result_diag = term1_diag + term2_diag + term3_diag
         return bu.matrix_set_diag(term2, result_diag, dim1=-2, dim2=-1)
@@ -68,9 +68,9 @@ class LinearCertainActivations(Linear):
         if self.bias:
             y_mean += self.bias.q_loc.unsqueeze(0).expand_as(y_mean)
 
-        y_cov = xx.mm(torch.pow(self.weight.q_scale, 2).t())
+        y_cov = xx.mm(torch.pow(torch.exp(self.weight.log_q_scale), 2).t())
         if self.bias:
-            y_cov += torch.pow(self.bias.q_scale, 2).unsqueeze(0).expand_as(y_cov)
+            y_cov += torch.pow(torch.exp(self.bias.log_q_scale), 2).unsqueeze(0).expand_as(y_cov)
         y_cov = torch.diag_embed(y_cov)
         return GaussianVar(y_mean, y_cov)
 
@@ -97,7 +97,7 @@ class LinearReLU(Linear):
         z_mean = sqrt_x_var_diag * bu.softrelu(mu)
         y_mean = z_mean.mm(self.weight.q_loc.t())
         if self.bias:
-            y_mean += torch.pow(self.bias.q_scale, 2).unsqueeze(0).expand_as(y_mean)
+            y_mean += torch.pow(torch.exp(self.bias.log_q_scale), 2).unsqueeze(0).expand_as(y_mean)
         z_cov = relu_covariance(input)
         y_cov = self.forward_covariance(z_mean, z_cov)
         return GaussianVar(y_mean, y_cov)
