@@ -90,7 +90,6 @@ def make_weight_matrix(shape, prior_type, variance):
 
         prior = InverseGamma(alpha, beta)
 
-        # mean = nn.Parameter(gaussian_init(0.0, math.sqrt(variance), shape))
         mean = nn.Parameter(torch.Tensor(*shape))
         nn.init.normal_(mean, 0.0, math.sqrt(variance))
         return Parameter(prior, tdist.Normal, mean, log_stddev)

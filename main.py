@@ -62,12 +62,11 @@ def main():
 
     optimizer = optim.Adam(model.parameters(),
                            lr=args.lr)
-    # schedular = optim.lr_scheduler.StepLR(optimizer, 5, 0.1)
 
     for epoch in range(1, args.epochs+1):
-        # schedular.step()
         train(epoch, model, criterion, trainloader, optimizer)
         # test(epoch, model, criterion, testloader)
+    torch.save(model, 'temp.pth.tar')
 
 
 
@@ -82,7 +81,7 @@ if __name__ == '__main__':
     parser.add_argument('--nonlinear', type=str, default='relu',
                         help="Non-Linearity")
 
-    parser.add_argument('--epochs', type=int, default=10000,
+    parser.add_argument('--epochs', type=int, default=3000,
                         help="Epochs")
     parser.add_argument('--lr', type=float, default=1e-3,
                         help='learning rate')

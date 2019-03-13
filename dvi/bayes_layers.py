@@ -106,7 +106,7 @@ class VariationalLinearReLU(VariationalLinear):
         z_mean = sqrt_x_var_diag * bu.softrelu(mu)
         y_mean = z_mean.mm(self.weight.q_loc.t())
         if self.bias:
-            y_mean += torch.pow(torch.exp(self.bias.log_q_scale), 2).unsqueeze(0).expand_as(y_mean)
+            y_mean += self.bias.q_loc.unsqueeze(0).expand_as(y_mean)
         z_cov = relu_covariance(input)
         y_cov = self.forward_covariance(z_mean, z_cov)
         return GaussianVar(y_mean, y_cov)

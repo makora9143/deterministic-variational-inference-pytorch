@@ -12,15 +12,26 @@ class MLP(nn.Module):
         if hidden_size is not None:
             self.sizes += hidden_size
         self.sizes += [y_dim]
-        # self.prior_type = prior_type
-        self.make_layers(True)
+        self.make_layers()
 
 
-    def make_layers(self, bias=True):
-        layers = [VariationalLinearCertainActivations(self.sizes[0], self.sizes[1])]
-        for in_dim, out_dim in zip(self.sizes[1:-1], self.sizes[2:]):
-            layers.append(VariationalLinearReLU(in_dim, out_dim))
-        self.layers = nn.Sequential(*layers)
+    def make_layers(self):
+        # layers = [VariationalLinearCertainActivations(self.sizes[0], self.sizes[1])]
+        # for in_dim, out_dim in zip(self.sizes[1:-1], self.sizes[2:]):
+        #     print('in_dim:{}, out_dim:{}'.format(in_dim, out_dim))
+        #     layers.append(VariationalLinearReLU(in_dim, out_dim))
+        # self.layers = nn.Sequential(*layers)
+
+        self.layers = nn.Sequential(
+            VariationalLinearCertainActivations(1, 128),
+            VariationalLinearReLU(128, 128),
+            VariationalLinearReLU(128, 2)
+        )
+        #
+        # self.layers = nn.Sequential(VariationalLinearCertainActivations(self.sizes[0], self.sizes[1]))
+        # for in_dim, out_dim in zip(self.sizes[1:-1], self.sizes[2:]):
+        #     print('in_dim:{}, out_dim:{}'.format(in_dim, out_dim))
+        #     self.layers.add_module('{}-{}'.format(in_dim, out_dim), VariationalLinearReLU(in_dim, out_dim))
 
     def forward(self, input):
         return self.layers(input)
