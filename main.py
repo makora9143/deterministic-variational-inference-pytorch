@@ -6,6 +6,8 @@ import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
+
+import dvi.bayes_utils as bu
 from dvi.dataset import ToyDataset
 from dvi.bayes_models import MLP, AdaptedMLP
 from dvi.loss import GLLLoss
@@ -26,7 +28,7 @@ def train(epoch, model, criterion, dataloader, optimizer):
         log_likelihood = criterion(pred, ys)
         batch_log_likelihood = torch.mean(log_likelihood)
 
-        lmbd = anneal(epoch)
+        lmbd = bu.anneal(epoch)
 
         loss = lmbd * kl / args.train_size - batch_log_likelihood
 
@@ -38,10 +40,6 @@ def train(epoch, model, criterion, dataloader, optimizer):
         accuracy = torch.mean(torch.abs(pred.mean[:, 0].reshape(-1) - ys))
     if epoch % 20 == 0:
         print("Epoch {}: GLL={:.4f}, KL={:.4f}(anneal:{}) | MAE={:.4f}".format(epoch, batch_log_likelihood.item(), kl.item()/500, lmbd, accuracy))
-
-
-def anneal(epoch):
-    return 1.0 * max(min((epoch - 14000) / 1000, 1.0), 0.0)
 
 
 def main():
@@ -60,7 +58,6 @@ def main():
     for epoch in range(1, args.epochs+1):
         train(epoch, model, criterion, trainloader, optimizer)
     torch.save(model, 'temp.pth.tar')
-
 
 
 if __name__ == '__main__':

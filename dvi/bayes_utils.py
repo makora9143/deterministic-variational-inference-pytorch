@@ -36,3 +36,6 @@ def standard_gaussian(x):
 def softrelu(x):
     return standard_gaussian(x) + x * gaussian_cdf(x)
 
+def anneal(epoch, warmup=14000, anneal=1000):
+    return 1.0 * max(min((epoch - warmup) / anneal, 1.0), 0.0)
+
