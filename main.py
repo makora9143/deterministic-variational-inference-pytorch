@@ -1,8 +1,6 @@
 import argparse
 
 import numpy as np
-#import matplotlib.pyplot as plt
-
 
 import torch
 import torch.optim as optim
@@ -32,27 +30,23 @@ def train(epoch, model, criterion, dataloader, optimizer):
 
         loss = lmbd * kl / args.train_size - batch_log_likelihood
 
-        loss.backward(retain_graph=True)
+        loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
 
         optimizer.step()
 
         accuracy = torch.mean(torch.abs(pred.mean[:, 0].reshape(-1) - ys))
     if epoch % 20 == 0:
-        print("Epoch {}: GLL={:.4f}, KL={:.4f}, ACC={:.4f}".format(epoch, batch_log_likelihood.item(), kl.item()/500, accuracy))
+        print("Epoch {}: GLL={:.4f}, KL={:.4f}(anneal:{}) | MAE={:.4f}".format(epoch, batch_log_likelihood.item(), kl.item()/500, lmbd, accuracy))
 
-
-def test(epoch, model, criterion, dataloader):
-    model.test()
 
 def anneal(epoch):
     return 1.0 * max(min((epoch - 14000) / 1000, 1.0), 0.0)
 
+
 def main():
     trainset = ToyDataset(data_size=args.train_size, sampling=True)
-    testset = ToyDataset(data_size=args.test_size, sampling=True)
     trainloader = DataLoader(trainset, batch_size=args.train_size, shuffle=True)
-    testloader = DataLoader(testset, batch_size=args.test_size, shuffle=True)
 
 
     mlp = MLP(args.x_dim, args.y_dim, args.hidden_dims)
@@ -65,7 +59,6 @@ def main():
 
     for epoch in range(1, args.epochs+1):
         train(epoch, model, criterion, trainloader, optimizer)
-        # test(epoch, model, criterion, testloader)
     torch.save(model, 'temp.pth.tar')
 
 

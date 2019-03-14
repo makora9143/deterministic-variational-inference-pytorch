@@ -60,16 +60,6 @@ class VariationalLinear(nn.Module):
 
 
 class VariationalLinearCertainActivations(VariationalLinear):
-    # def __init__(self, input_features, output_features,
-    #              prior_type='empirical',
-    #              variance='wider_he',
-    #              bias=True):
-    #     super(VariationalLinearCertainActivations, self).__init__(input_features,
-    #                                                               output_features,
-    #                                                               prior_type,
-    #                                                               variance,
-    #                                                               bias)
-
     def forward(self, input):
         x_mean = input
         xx = x_mean * x_mean
@@ -85,9 +75,6 @@ class VariationalLinearCertainActivations(VariationalLinear):
 
 
 class VariationalLinearReLU(VariationalLinear):
-    # def __init__(self, input_features, output_features, prior_type, bias=True):
-    #     super(LinearReLU, self).__init__(input_features, output_features, prior_type, bias)
-
     def forward(self, input):
         x_var_diag = torch.diagonal(input.var, dim1=-2, dim2=-1)
         sqrt_x_var_diag = torch.sqrt(x_var_diag)
