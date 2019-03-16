@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from .bayes_layers import VariationalLinearCertainActivations, VariationalLinearReLU
 from .variables import GaussianVar
@@ -42,6 +43,13 @@ class MLP(nn.Module):
             all_surprise += layer.surprise()
         return all_surprise
 
+    def forward_mcmc(self, input, n_samples=None, average=False):
+        h = self.layers[0].forward_mcmc(input)
+        for layer in self.layers[1:]:
+            h = layer.forward_mcmc(F.relu(h), n_samples)
+        return h
+            
+
 
 class AdaptedMLP(object):
     def __init__(self, mlp, adapter, device=torch.device('cpu')):
@@ -74,3 +82,9 @@ class AdaptedMLP(object):
 
     def parameters(self):
         return self.mlp.parameters()
+
+    def mcmc(self, input, n_samples=None):
+        x_ad = self.adapter['in']['scale'] * input + self.adapter['in']['shift']
+        self.pre_adapt = self.mlp.forward_mcmc(x_ad, n_samples)
+        mean = self.adapter['out']['scale'] * self.pre_adapt + self.adapter['out']['shift']
+        return mean

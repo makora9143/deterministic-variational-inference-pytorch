@@ -58,6 +58,21 @@ class VariationalLinear(nn.Module):
         result_diag = term1_diag + term2_diag + term3_diag
         return bu.matrix_set_diag(term2, result_diag, dim1=-2, dim2=-1)
 
+    def forward_mcmc(self, input, n_samples=None, average=False):
+        if n_samples is None:
+            n_samples = 1
+
+        repeated_x = input.unsqueeze(0).repeat(n_samples, 1, 1)
+
+        sampled_w = self.weight.sample(n_samples, average)
+
+        h = torch.matmul(repeated_x, sampled_w.transpose(1, 2))
+
+        if self.bias:
+            sampled_b = self.bias.sample(n_samples, average)
+            h += sampled_b.unsqueeze(1).expand_as(h)
+        return h
+
 
 class VariationalLinearCertainActivations(VariationalLinear):
     def forward(self, input):
@@ -98,3 +113,15 @@ class VariationalLinearReLU(VariationalLinear):
         y_cov = self.forward_covariance(z_mean, z_cov)
         return GaussianVar(y_mean, y_cov)
 
+    def forward_mcmc(self, input, n_samples=None, average=False):
+        if n_samples is None:
+            n_samples = 1
+
+        sampled_w = self.weight.sample(n_samples, average)
+
+        h = torch.matmul(input, sampled_w.transpose(1, 2))
+
+        if self.bias:
+            sampled_b = self.bias.sample(n_samples, average)
+            h += sampled_b.unsqueeze(1).expand_as(h)
+        return h

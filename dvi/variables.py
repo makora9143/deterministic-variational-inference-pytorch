@@ -40,6 +40,12 @@ class Parameter(nn.Module):
         p = self.prior
         return tdist.kl_divergence(q, p)
 
+    def sample(self, n_sample=None, average=False):
+        if n_sample is None:
+            n_sample = 1
+        samples = self.q().rsample((n_sample,))
+        return samples
+
 
 def get_variance_scale(initialization_type, shape):
     if initialization_type == "standard":
